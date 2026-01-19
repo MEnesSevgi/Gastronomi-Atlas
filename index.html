@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>DÜNYA GASTRONOMİ ATLASI</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dünya Gastronomi Atlası - Akıllı Çeviri v4</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { 
+            --deep-red: #9e0142; 
+            --bright-orange: #f46d43;
+            --cream: #f9f7f2;
+            --text-dark: #2d3436;
+        }
+
+        /* Temel Yerleşim: Responsive için flex-direction değişebilir yapıldı */
+        body { 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            flex-direction: row; 
+            font-family: 'Trebuchet MS', sans-serif; 
+            background: var(--cream); 
+            overflow: hidden; 
+        }
+        
+        /* Harita Görünümü */
+        #map { 
+            flex: 1; 
+            height: 100%; 
+            z-index: 1; 
+            background: #aad3df; 
+            filter: saturate(1.1) contrast(1.05);
+        }
+        
+        /* Bilgi Paneli: Genişlik ve Mobildeki konumu ayarlandı */
+        #info-panel { 
+            width: 420px; 
+            background: white; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: -5px 0 20px rgba(0,0,0,0.1); 
+            z-index: 1000; 
+            border-left: 6px solid var(--deep-red);
+            transition: all 0.3s ease;
+        }
+        
+        .header { background: var(--deep-red); color: white; padding: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; }
+        
+        .search-area { padding: 15px; background: #f1f2f6; border-bottom: 1px solid #ddd; }
+        select { 
+            width: 100%; padding: 10px; 
+            border: 2px solid var(--deep-red); 
+            border-radius: 6px; font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        #wiki-content { padding: 25px; overflow-y: auto; flex: 1; }
+        #wiki-title { margin: 0; color: var(--deep-red); font-size: 26px; font-weight: 800; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        #loader { 
+            display: none; color: var(--bright-orange); font-weight: bold; 
+            padding: 10px; background: #fff3e0; margin-bottom: 10px; border-radius: 4px;
+            text-align: center; font-size: 13px;
+        }
+
+        .impact-box { 
+            background: #fff3e0; 
+            border-left: 4px solid var(--bright-orange); 
+            padding: 15px; margin: 15px 0; 
+            font-size: 16px; color: #5d4037; font-weight: 500;
+        }
+        
+        #wiki-img { width: 100%; display: none; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 4px solid white; box-sizing: border-box; }
+        #wiki-text { line-height: 1.6; color: var(--text-dark); font-size: 16px; text-align: justify; }
+        
+        .source-link { 
+            display: block; margin-top: 20px; padding: 12px; 
+            background: var(--text-dark); color: white; 
+            text-decoration: none; text-align: center; border-radius: 6px; font-weight: bold;
+        }
+
+        .food-marker { 
+            background-color: var(--bright-orange); 
+            border: 2px solid white; 
+            border-radius: 50%; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+            cursor: pointer;
+        }
+
+        /* --- RESPONSIVE AYARLAR --- */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column; /* Mobilde alt alta */
+            }
+
+            #map {
+                height: 40vh; /* Harita ekranın %40'ını kaplar */
+                flex: none;
+            }
+
+            #info-panel {
+                width: 100%; /* Panel tam genişlik */
+                height: 60vh; /* Panel ekranın %60'ını kaplar */
+                border-left: none;
+                border-top: 6px solid var(--deep-red); /* Kenarlık üste geçer */
+            }
+
+            .header {
+                padding: 10px;
+            }
+
+            #wiki-title {
+                font-size: 20px;
+            }
+
+            #wiki-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="info-panel">
+    <div class="header"><h1>DÜNYA GASTRONOMİ ATLASI</h1></div>
+    <div class="search-area">
+        <select id="newsSelect"><option value="">Bir Lezzet Durağı Seçin</option></select>
+    </div>
+    <div id="wiki-content">
+        <div id="loader">Bilgi hazırlanıyor, lütfen bekleyin...</div>
+        <h2 id="wiki-title">Lezzet Keşfi</h2>
+        <div id="impact-container"></div>
+        <img id="wiki-img" src="">
+        <div id="wiki-text">Haritadaki noktalara tıklayarak lezzetlerin hikayesini keşfedin.</div>
+        <a id="wiki-link" href="#" target="_blank" class="source-link" style="display:none;">KAYNAĞA GİT</a>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const dataSet = [
+           // ANADOLU
+      
+      
+         // SEBZE YEMEKLERİ
+    { name: "Karnıyarık", lat: 41.01, lng: 28.97, wiki: "Karnıyarık", impact: "Patlıcanın kızartılıp kıymalı harçla doldurulmasıyla yapılan, Osmanlı saray mutfağından halk mutfağına miras kalmış, Türk mutfağının en karakteristik ana yemeklerinden biri." },
+    { name: "Zeytinyağlı Enginar", lat: 38.32, lng: 26.75, wiki: "Enginar dolması", impact: "Ege ve Marmara'da zeytinyağı ile hazırlanan, karaciğer dostu ve mevsimlik bir mutfak şaheseri." },
+
+    // HAMUR İŞLERİ
+    { name: "Lahmacun", lat: 37.16, lng: 38.79, wiki: "Lahmacun", impact: "İnce hamur üzerine kıyma ve sebze harcının yayılmasıyla yapılan, Türk pizzası olarak da bilinen antik lezzet." },
+    { name: "Su Böreği", lat: 41.00, lng: 28.98, wiki: "Su_böreği", impact: "Açılan yufkaların suda haşlanmasıyla hazırlanan, yapımı en zahmetli ve prestijli geleneksel börek türü." },
+
+    // TATLILAR VE İÇECEKLER
+    { name: "Maraş Dondurması", lat: 37.57, lng: 36.92, wiki: "Maraş_dondurması", impact: "Keçi sütü ve Ahır Dağı'ndan toplanan salebin dövülmesiyle elde edilen, bıçakla kesilecek kadar sert dondurma." },
+    { name: "Türk Kahvesi", lat: 41.01, lng: 28.95, wiki: "Türk_kahvesi", impact: "Dünyanın en eski kahve pişirme tekniği; telvesiyle servis edilen tek kahve türü ve UNESCO Mirası." },
+    { name: "Ayran", lat: 39.91, lng: 28.15, wiki: "Ayran", impact: "Yoğurdun su ve tuzla karıştırılmasıyla elde edilen, Türk mutfağının milli soğuk içeceği." },
+    { name: "Baklava", lat: 37.06, lng: 37.38, wiki: "Baklava", impact: "İnce yufka, Antep fıstığı ve sade yağ ile hazırlanan geleneksel şerbetli tatlı." },
+    { name: "Künefe", lat: 36.20, lng: 36.15, wiki: "Künefe", impact: "Kadayıf ve özel künefe peyniri ile sıcak servis edilen coğrafi işaretli tatlı." },
+    { name: "Adana Kebabı", lat: 36.99, lng: 35.32, wiki: "Adana_kebap", impact: "Zırh ile kıyılan kuzu eti ve kuyruk yağının kömür ateşinde pişirilmesiyle yapılan kebap." },
+    { name: "Mantı", lat: 38.72, lng: 35.48, wiki: "Mantı", impact: "Küçük hamur parçalarının içine et konularak kapatılmasıyla yapılan, yoğurtlu ve soslu yemek." },
+ 
+      
+    { name: "Kuzu Tandır", lat: 38.35, lng: 31.41, wiki: "Kuzu_tandır", impact: "Akşehir merkezli, özel tandır fırınlarında kuzu etinin kendi yağında ve buharında saatlerce pişirildiği Selçuklu mirası teknik." },
+    { name: "Çiğ Köfte", lat: 37.16, lng: 38.79, wiki: "Çiğ_köfte", impact: "İnce bulgur, özel Urfa isotu ve baharatların el gücüyle, ısı uygulanmadan yoğurularak hazırlandığı binlerce yıllık mutfak tekniği." },
+    { name: "Hünkarbeğendi", lat: 41.01, lng: 28.97, wiki: "Hünkarbeğendi", impact: "Közlenmiş patlıcanlı beşamel sos (beğendi) üzerine kuzu kuşbaşı eklenerek sunulan Osmanlı saray yemeği." },
+    { name: "Yaprak Sarma", lat: 40.32, lng: 36.55, wiki: "Sarma", impact: "İnce asma yapraklarının içine pirinç veya kıymalı harç konularak sarılmasıyla yapılan geleneksel yemek." },
+    
+    { name: "Yuvalama", lat: 37.05, lng: 37.35, wiki: "Yuvalama", impact: "Küçük pirinç ve et toplarının, süzme yoğurtlu ve nohutlu sos içinde pişirildiği bayram yemeği." },
+    { name: "Perde Pilavı", lat: 37.93, lng: 41.94, wiki: "Perde_pilavı", impact: "Keklik veya tavuk eti, fıstık ve üzümle hazırlanan pilavın hamur tabakası içinde fırınlanmasıyla yapılan yemek." },
+  
+    { name: "Tas Kebabı", lat: 39.92, lng: 32.85, wiki: "Tas kebabı", impact: "Kuşbaşı etin sebzelerle birlikte kendi suyunda ağır ateşte pişirildiği klasik tencere kebabı." },
+    { name: "Keşkek", lat: 40.00, lng: 33.00, wiki: "Keşkek", impact: "Dövülmüş buğday ve etın uzun süre birlikte pişirilerek macun kıvamına getirildiği törensel yemek." },
+      
+    { name: "Tarhana Çorbası", lat: 38.67, lng: 29.40, wiki: "Tarhana", impact: "Orta Asya'dan miras kalan, yoğurt ve tahılların fermente edilmesiyle hazırlanan dünyanın en eski hazır çorbası." },
+    { name: "Ezogelin Çorbası", lat: 36.95, lng: 37.50, wiki: "Ezogelin_çorbası", impact: "Mercimek, pirinç ve bulgurun nane ile buluştuğu, hikayesiyle bilinen besleyici Anadolu çorbası." },
+         { name: "Vakfıkebir Ekmeği", lat: 41.03, lng: 39.28, wiki: "Vakfıkebir_ekmeği", impact: "Ekşi maya kullanılarak taş fırında pişirilen, büyük boyutlu ve uzun süre taze kalan bölge ekmeği." },
+    
+    // ET YEMEKLERİ
+    { name: "Döner Kebap", lat: 40.19, lng: 29.06, wiki: "Döner_kebap", impact: "Dikey şişe dizilen etlerin dönerek pişirilmesiyle yapılan ve dünya çapında Türkiye'nin simgesi haline gelen kebap." },
+    { name: "Cağ Kebabı", lat: 40.58, lng: 41.93, wiki: "Cağ_kebabı", impact: "Yatık şiş üzerinde odun ateşinde pişirilen, özel baharatlarla marine edilmiş Erzurum/Oltu kökenli kebap." },
+    { name: "Akçaabat Köftesi", lat: 41.02, lng: 39.56, wiki: "Akçaabat_köftesi", impact: "Sığır eti, sarımsak ve bayat ekmeğin muazzam uyumuyla ızgara tekniğiyle hazırlanan Karadeniz köftesi." },
+    { name: "İnegöl Köftesi", lat: 40.08, lng: 29.51, wiki: "İnegöl_köfte", impact: "Balkan mutfağı etkisiyle gelişen, kendine has dokusu ve az baharatlı yapısıyla bilinen tescilli köfte." },
+    // AZERBAYCAN
+{ name: "Şah Pilavı", lat: 40.40, lng: 49.86, wiki: "Pilaf", impact: "Kuzu eti, kayısı, erik kurusu ve kestaneli pilavın, çıtır bir yufka (kazmag) içinde fırınlanarak sunulduğu Azerbaycan mutfağının tacı." },
+{ name: "Piti", lat: 41.20, lng: 47.17, wiki: "Piti_(food)", impact: "Şeki şehrine özgü; kuzu eti, nohut ve kuyruk yağının özel toprak küplerde saatlerce pişirildiği, hem suyu hem eti ayrı yenen kadim yemek." },
+{ name: "Lüle Kebabı", lat: 40.38, lng: 49.83, wiki: "Lula_kebab", impact: "Kuzu eti ve kuyruk yağının özel baharatlarla yoğurulup şişte pişirildiği, ince lavaş ve soğanla servis edilen Bakü usulü kebap." },
+{ name: "Düşbere", lat: 40.42, lng: 49.85, wiki: "Dushbara", impact: "Bir kaşığa en az 10-15 adet sığacak kadar küçük kapatılan, sirke-sarımsak sosu ve nane ile servis edilen geleneksel Azerbaycan mantı çorbası." },
+{ name: "Kutab", lat: 40.50, lng: 49.70, wiki: "Qutab", impact: "İnce hamur arasına balkabağı, yeşillik veya et konularak sac üzerinde pişirilen, üzerine sumak serpilerek yenen meşhur Azerbaycan gözlemesi." },
+
+ 
+
+    // ORTADOĞU VE ASYA
+    { name: "Humus", lat: 33.88, lng: 35.50, wiki: "Humus (yemek)", impact: "Haşlanmış nohut, tahin, limon suyu ve sarımsak ile hazırlanan Orta Doğu kökenli meze." },
+    { name: "Tabbule Salatası", lat: 33.88, lng: 35.45, wiki: "Tabbouleh", impact: "İnce bulgur, bol maydanoz, nane ve domatesin harmanlandığı Lübnan usulü salata." },
+    { name: "Falafel", lat: 30.04, lng: 31.23, wiki: "Falafel", impact: "Ezilmiş bakla veya nohutun çeşitli baharatlarla karıştırılıp kızartılmasıyla yapılan yemek." },
+    { name: "Safran", lat: 32.65, lng: 51.66, wiki: "Safran", impact: "Çiğdem çiçeğinden elde edilen, yemeklere renk ve koku veren değerli bir baharat." },
+      
+    { name: "Fettuş Salatası", lat: 33.51, lng: 36.29, wiki: "Fattoush", impact: "Kızarmış lavaş parçaları, sumak ve nar ekşisiyle hazırlanan, Orta Doğu'nun en ferahlatıcı ve karakteristik salatası." },
+    { name: "Kibbeh Labanieh", lat: 34.80, lng: 36.72, wiki: "Kibbeh", impact: "İçli köftelerin (kibbeh) sıcak bir yoğurt sosu ve nane eşliğinde pişirildiği, Suriye mutfağının teknik ve sabır isteyen tencere yemeği." },
+    { name: "Maklube", lat: 32.73, lng: 36.12, wiki: "Maqluba", impact: "Patlıcan, et ve pirincin katmanlar halinde pişirilip tencerenin ters çevrilerek (maklube) sunulduğu görsel bir şölen." },
+      
+    // ORTADOĞU VE ARAP YARIMADASI
+    { name: "Mansaf", lat: 31.94, lng: 35.92, wiki: "Mansaf", impact: "Kuzu etinin kurutulmuş yoğurt (cemid) sosunda pişirilip pirinç ve kuruyemişlerle sunulduğu Ürdün'ün ulusal yemeği." },
+    { name: "Kabsa", lat: 24.71, lng: 46.67, wiki: "Kabsa", impact: "Uzun taneli pirinç, et ve 'baharat' adı verilen özel karışımla hazırlanan, Arap Yarımadası'nın en popüler pilav yemeği." },
+    { name: "Mandi", lat: 15.35, lng: 44.20, wiki: "Mandi_(food)", impact: "Etin yer altında açılan özel kuyularda, baharatlı pirincin üzerinde asılı olarak pişirildiği geleneksel Yemen tekniği." },
+    { name: "Bariis Iskukaris", lat: 2.04, lng: 45.33, wiki: "Bariis_iskukaris", impact: "Yerel baharatların harmanlandığı, et suyu ve sebzelerle zenginleştirilmiş Somali usulü baharatlı pirinç." },
+    { name: "Tahchin", lat: 35.68, lng: 51.38, wiki: "Tahchin", impact: "Safran, yoğurt ve yumurta ile hazırlanan pirincin, altı çıtır (tahdig) olacak şekilde fırınlandığı İran usulü pasta pilav." },
+    { name: "Masgouf", lat: 33.31, lng: 44.36, wiki: "Masgouf", impact: "Dicle ve Fırat nehirlerinden çıkan sazan balığının, odun ateşinde pişirildiği Irak'ın milli yemeği." },
+    { name: "Ishlekli", lat: 37.95, lng: 58.38, wiki: "Ishlykly", impact: "Kızgın kumun içine gömülerek veya fırında pişirilen, içi bol etli ve soğanlı Türkmen çöreği." },
+    { name: "Nihari", lat: 24.86, lng: 67.00, wiki: "Nihari", impact: "Dana inciğin kemik iliği ile birlikte bütün gece boyunca yavaşça piştiği, sabah kahvaltısında yenen yoğun kıvamlı Pakistan yemeği." },
+    { name: "Mohinga", lat: 16.86, lng: 96.19, wiki: "Mohinga", impact: "Yayın balığı suyu, pirinç eriştesi ve muz gövdesi ile hazırlanan, Myanmar'ın milli çorbası." },
+
+    // AVRUPA
+       // AVRUPA VE ADALAR
+      // İRLANDA
+{ name: "Irish Stew", lat: 53.34, lng: -6.26, wiki: "Irish_stew", impact: "Kuzu eti, patates, havuç ve soğanla yapılan, İrlanda'nın en ikonik ve doyurucu ulusal tencere yemeği." },
+{ name: "Colcannon", lat: 51.89, lng: -8.47, wiki: "Colcannon", impact: "Patates püresinin lahana veya kara lahana ile karıştırılıp bol tereyağı ile servis edildiği geleneksel bir İrlanda garnitürü." },
+{ name: "Boxty", lat: 54.27, lng: -8.47, wiki: "Boxty", impact: "Rendelenmiş çiğ patates ve unun karıştırılmasıyla hazırlanan, tavada pişirilen geleneksel bir İrlanda patates krebi." },
+{ name: "Soda Bread", lat: 52.66, lng: -8.62, wiki: "Soda_bread", impact: "Maya yerine karbonat kullanılarak hazırlanan, kendine has yoğun dokusu olan tarihi İrlanda ekmeği." },
+    { name: "Haggis", lat: 55.95, lng: -3.18, wiki: "Haggis", impact: "Koyun sakatatlarının soğan, yulaf ezmesi ve baharatlarla karıştırılarak işkembe içinde haşlandığı İskoçya'nın milli yemeği." },
+    { name: "Hellim Peyniri", lat: 35.12, lng: 33.42, wiki: "Hellim", impact: "Keçi ve koyun sütünden yapılan, yüksek erime noktası sayesinde ızgarada veya tavada pişirilebilen tescilli ada peyniri." },
+    { name: "Molehiya", lat: 35.15, lng: 33.35, wiki: "Molehiya", impact: "Aynı isimli bitkinin kurutulmuş yapraklarından yapılan, kuzu eti ve bol limonla hazırlanan, adaya has aromatik ve kıvamlı yemek." },
+    { name: "Pizza Margherita", lat: 40.83, lng: 14.24, wiki: "Pizza Margherita", impact: "Domates sosu, mozzarella peyniri ve taze fesleğen ile hazırlanan geleneksel Napoli pizzası." },
+    { name: "Pizza al Taglio", lat: 41.90, lng: 12.49, wiki: "Pizza_al_taglio", impact: "Dikdörtgen tepsilerde pişirilen, dilimle satılan, Roma'ya özgü çıtır tabanlı pizza türü." },
+    { name: "Pizza Marinara", lat: 40.85, lng: 14.26, wiki: "Pizza_marinara", impact: "Domates, sarımsak, kekik ve sızma zeytinyağı ile hazırlanan peynirsiz klasik Napoli pizzası." },
+    { name: "Lazanya", lat: 44.49, lng: 11.34, wiki: "Lasagna", impact: "Kat kat taze hamur, bolonez sos ve beşamel sosun fırınlanmasıyla yapılan Bolonya bölgesi yemeği." },
+    { name: "Pesto Sosu", lat: 44.40, lng: 8.94, wiki: "Pesto", impact: "Cenova usulü; taze fesleğen, çam fıstığı, sarımsak, parmesan ve zeytinyağının mermer havanda dövülerek (pestâ) emülsiyon haline getirildiği soğuk sos tekniği." },
+    { name: "Cacio e Pepe", lat: 41.91, lng: 12.48, wiki: "Cacio_e_pepe", impact: "Sadece pecorino peyniri ve karabiber kullanılarak hazırlanan geleneksel Roma makarnası." },
+    { name: "Paella", lat: 39.46, lng: -0.37, wiki: "Paella", impact: "Safranlı pirinç, tavuk eti ve sebzelerin geniş tavalarda pişirildiği İspanyol yemeği." },
+    { name: "Kruvasan", lat: 48.85, lng: 2.35, wiki: "Croissant", impact: "Bol tereyağlı ve katmanlı hamurdan hazırlanan ay çöreği formunda fırın ürünü." },
+    { name: "Bask Cheesecake", lat: 43.31, lng: -1.98, wiki: "Cheesecake", impact: "Yüksek sıcaklıkta pişirilerek dışı karamelize edilen, içi yumuşak peynirli kek." },
+    { name: "Fondü", lat: 46.81, lng: 8.22, wiki: "Fondue", impact: "Eritilmiş peynir karışımına ekmek parçalarının batırılarak yendiği İsviçre yemeği." },
+    { name: "Pastel de Nata", lat: 38.69, lng: -9.21, wiki: "Pastel_de_nata", impact: "Çıtır milföy hamuru içerisinde fırınlanmış yumurta kremalı Portekiz tatlısı." },
+    { name: "Şinitzel", lat: 48.20, lng: 16.37, wiki: "Wiener_Schnitzel", impact: "İnce dilimlenmiş etın un, yumurta ve galeta ununa bulanarak kızartıldığı Avusturya yemeği." },
+    { name: "Patates Kızartması", lat: 50.85, lng: 4.35, wiki: "French_fries", impact: "İki aşamalı kızartma tekniğiyle hazırlanan, yanında çeşitli soslarla servis edilen Belçika usulü patates." },
+    { name: "Fish and Chips", lat: 51.50, lng: -0.12, wiki: "Fish_and_chips", impact: "Pane edilmiş balık filetosu ve patates kızartmasından oluşan geleneksel İngiliz yemeği." },
+
+    { name: "Deep Dish Pizza", lat: 41.87, lng: -87.62, wiki: "Chicago-style_pizza", impact: "Derin bir kapta pişirilen, kalın kenarlı ve malzemelerin ters sırada (peynir altta, sos üstte) konulduğu pizza." },
+    { name: "Detroit Usulü Pizza", lat: 42.33, lng: -83.04, wiki: "Detroit-style_pizza", impact: "Dikdörtgen çelik tepsilerde pişirilen, kenarları karamelize peynirli ve kalın hamurlu pizza türü." },
+    { name: "Sicilya Pizzası", lat: 38.11, lng: 13.36, wiki: "Sfincione", impact: "Kalın, süngerimsi bir hamur üzerine domates sosu, soğan, balık ve sert peynir konularak hazırlanan Sicilya pizzası." },
+    { name: "Pizza Bianca", lat: 41.89, lng: 12.49, wiki: "Pizza_bianca", impact: "Domates sosu içermeyen, sadece zeytinyağı, tuz ve bazen biberiye ile hazırlanan Roma usulü beyaz pizza." },
+    { name: "Pissaladière", lat: 43.70, lng: 7.26, wiki: "Pissaladière", impact: "Güney Fransa'ya özgü, kalın hamur üzerine karamelize soğan, balık ve siyah zeytin konularak yapılan pizza benzeri yemek." },
+    { name: "Flammkuchen", lat: 48.57, lng: 7.75, wiki: "Flammekueche", impact: "Çok ince hamur üzerine krema, soğan ve füme et parçaları konularak yüksek ateşte pişirilen bölge yemeği." },
+    { name: "Calzone", lat: 40.83, lng: 14.25, wiki: "Calzone", impact: "Pizza hamurunun içine domates, mozzarella ve salam konularak yarım ay şeklinde kapatılıp pişirilen İtalyan yemeği." },
+    { name: "St. Louis Usulü Pizza", lat: 38.62, lng: -90.19, wiki: "St._Louis-style_pizza", impact: "Çok ince ve çıtır hamur üzerine Provel peyniri kullanılarak yapılan, kare dilimlerle servis edilen pizza türü." },
+    { name: "Ratatouille", lat: 43.71, lng: 7.26, wiki: "Ratatouille", impact: "Patlıcan, kabak ve biber gibi sebzelerin domates sosuyla ağır ateşte pişirildiği Fransız sebze yemeği." },
+    { name: "Gulaş", lat: 47.49, lng: 19.04, wiki: "Goulash", impact: "Bol paprika, et ve sebze içeren, Macaristan mutfağına özgü yoğun kıvamlı çorba veya tencere yemeği." },
+    { name: "Trdelník", lat: 50.07, lng: 14.43, wiki: "Trdelník", impact: "Açık ateşte silindire sarılarak pişirilen, şeker ve tarçınla kaplanan geleneksel bir hamur tatlısı." },
+    { name: "Ajvar", lat: 44.81, lng: 20.46, wiki: "Ajvar", impact: "Közlenmiş patlıcan ve kırmızı biberin saatlerce ağır ateşte pişirilerek hazırlandığı, Balkanlar'ın 'sebze havyarı' olarak bilinen sosu." },
+    { name: "Sauerkraut", lat: 52.52, lng: 13.40, wiki: "Sauerkraut", impact: "Lahananın kendi suyunda laktik asit fermantasyonuna bırakılmasıyla hazırlanan, probiyotik zengini karakteristik Alman garnitürü." },
+    { name: "Currywurst", lat: 52.50, lng: 13.37, wiki: "Currywurst", impact: "Kızarmış sosisin köri ve ketçap bazlı özel bir sosla servis edildiği, Berlin kökenli ikonik sokak lezzeti." },
+
+    // BALKANLAR VE DOĞU AVRUPA
+    { name: "Banitsa", lat: 42.69, lng: 23.32, wiki: "Banitsa", impact: "Yufka katmanları arasına yumurta ve beyaz peynir konularak hazırlanan geleneksel Bulgar böreği." },
+    { name: "Sarmale", lat: 44.42, lng: 26.10, wiki: "Sarmale", impact: "Kıyma ve pirinç karışımının lahana veya asma yaprağına sarılıp yavaşça pişirildiği Romanya usulü dolma." },
+    { name: "Pierogi", lat: 52.22, lng: 21.01, wiki: "Pierogi", impact: "İçerisine patates, peynir veya et konularak haşlanan, Doğu Avrupa'ya özgü bir mantı türü." },
+    { name: "Pastitsio", lat: 37.98, lng: 23.72, wiki: "Pastitsio", impact: "Yunan usulü katmanlı makarna; tarçınlı kıyma sosu ve kalın bir beşamel tabakasının fırınlanmasıyla yapılan zengin bir yemek." },
+    { name: "Kleftiko", lat: 37.93, lng: 23.94, wiki: "Kleftiko", impact: "Kuzu etinin sarımsak, otlar ve sebzelerle birlikte parşömen kağıdında uzun süre pişirildiği 'hırsız kebabı'." },
+    { name: "Tavë kosi", lat: 41.11, lng: 20.08, wiki: "Tavë kosi", impact: "Kuzu etinin yoğun yoğurt ve yumurtalı bir sos (roux) ile fırınlandığı, Arnavutluk mutfağının imza yemeği." },
+    { name: "Njeguški Pršut", lat: 42.42, lng: 18.91, wiki: "Njeguški_pršut", impact: "Deniz havası ve dağ havasının kesiştiği noktada kurutulan, özel isleme tekniğine sahip Karadağ jambonu." },
+    { name: "Mamaliga", lat: 47.01, lng: 28.85, wiki: "Mămăligă", impact: "Mısır unundan yapılan, ekmek yerine tüketilen, peynir ve krema ile servis edilen Moldova'nın temel gıdası." },
+
+    // İSKANDİNAVYA
+    { name: "İsveç Köftesi", lat: 59.32, lng: 18.06, wiki: "İsveç köftesi", impact: "Sığır ve kuzu etiyle hazırlanan, yanında krema sosu ve yaban mersini reçeliyle sunulan İsveç yemeği." },
+    { name: "Gravlax", lat: 59.91, lng: 10.75, wiki: "Gravlax", impact: "Taze somon balığının şeker, tuz ve dereotu ile marine edilerek çiğ tüketildiği İskandinav klasiği." },
+    { name: "Smørrebrød", lat: 55.67, lng: 12.56, wiki: "Smørrebrød", impact: "Çavdar ekmeği üzerine balık, et veya sebze dizilerek hazırlanan geleneksel Danimarka açık sandviçi." },
+
+    // ORTA ASYA
+    { name: "Plov", lat: 41.29, lng: 69.24, wiki: "Pilaf", impact: "Et, havuç ve soğan ile büyük kazanlarda pişirilen, Orta Asya mutfağının temelini oluşturan pirinç yemeği." },
+    { name: "Beşparmak", lat: 51.16, lng: 71.47, wiki: "Beshbarmak", impact: "Haşlanmış hamur parçaları üzerine et ve soğan sosu konularak sunulan Kazakistan'ın milli yemeği." },
+    { name: "Adobo", lat: 14.59, lng: 120.98, wiki: "Philippine_adobo", impact: "Etın soya sosu, sirke ve sarımsak içinde yavaşça pişirildiği Filipinler'in imza yemeği." },
+    { name: "Nasi Lemak", lat: 3.13, lng: 101.68, wiki: "Nasi_lemak", impact: "Hindistan cevizi sütüyle pişirilen pirincin balık, yer fıstığı ve acı sosla sunulduğu Malezya yemeği." },
+
+    // ASYA
+    { name: "Sushi", lat: 35.68, lng: 139.65, wiki: "Sushi", impact: "Sirkeli pirinç üzerine çiğ balık veya deniz mahsulleri konularak hazırlanan Japon yemeği." },
+    { name: "Pho Çorbası", lat: 21.02, lng: 105.83, wiki: "Phở", impact: "Et suyu, pirinç eriştesi ve taze otlarla servis edilen Vietnam mutfağına özgü çorba." },
+    { name: "Pekin Ördeği", lat: 39.90, lng: 116.40, wiki: "Pekin ördeği (yemek)", impact: "Özel bir teknikle kızartılan çıtır derili ve yumuşak etli geleneksel Çin yemeği." },
+    { name: "Pad Thai", lat: 13.75, lng: 100.50, wiki: "Pad thai", impact: "Pirinç eriştesi, karides, yer fıstığı ve çeşitli baharatların tavada sotelenmesiyle yapılan yemek." },
+    { name: "Kimchi", lat: 37.56, lng: 126.97, wiki: "Kimchi", impact: "Çin lahanası ve acı biber gibi sebzelerin fermente edilmesiyle yapılan geleneksel Kore garnitürü." },
+    { name: "Haçapuri", lat: 41.71, lng: 44.78, wiki: "Khachapuri", impact: "İçerisine peynir ve bazen yumurta eklenerek fırınlanan Gürcü usulü peynirli pide." },
+    { name: "Okonomiyaki", lat: 34.69, lng: 135.50, wiki: "Okonomiyaki", impact: "Un, yumurta ve lahana bazlı hamurla sac üzerinde pişirilen Japon usulü tuzlu krep." },
+    { name: "Xiao Long Bao", lat: 31.23, lng: 121.47, wiki: "Xiaolongbao", impact: "İçerisinde sıcak et suyu ve kıyma bulunan, buharda pişirilmiş Şanghay usulü mantı." },
+    { name: "Nasi Goreng", lat: -6.20, lng: 106.84, wiki: "Nasi_goreng", impact: "Tatlı soya sosu, karides ezmesi ve sebzelerle hazırlanan Endonezya usulü kızarmış pirinç." },
+    { name: "Biryani", lat: 17.38, lng: 78.48, wiki: "Biryani", impact: "Basmati pirinci, et ve yoğun baharatlarla hazırlanan aromatik Hint pilavı." },
+    { name: "Buuz", lat: 47.88, lng: 106.89, wiki: "Buuz", impact: "İçerisi yoğun etle doldurulan ve buharda pişirilen Moğolistan'a özgü büyük hamur mantısı." },
+    { name: "Tom Yum Çorbası", lat: 13.75, lng: 100.52, wiki: "Tom_yum", impact: "Karides, lemongrass ve galangal ile hazırlanan, acı ve ekşi dengeli dünyaca ünlü Tayland çorbası." },
+    { name: "Kabuli Pulao", lat: 34.53, lng: 69.16, wiki: "Kabuli_pulao", impact: "Kuzu eti, havuç ve kuru üzümle hazırlanan, Orta Asya'nın en karakteristik pirinç yemeklerinden biri." },
+    { name: "Laksa", lat: 3.13, lng: 101.68, wiki: "Laksa", impact: "Hindistan cevizi sütü veya ekşi balık suyu bazlı, baharatlı ve erişteli Malezya/Singapur mutfak sentezi." },
+
+    // AFRİKA VE OKYANUSYA
+    { name: "Thieboudienne", lat: 14.71, lng: -17.46, wiki: "Thieboudienne", impact: "Balık, pirinç ve domates soslu sebzelerin birlikte pişirildiği Senegal kökenli Batı Afrika yemeği." },
+    { name: "Biltong", lat: -25.74, lng: 28.18, wiki: "Biltong", impact: "Sirke ve baharatlarla marine edildikten sonra kurutulan, Güney Afrika mutfağına özgü kurutulmuş et." },
+    { name: "Meat Pie", lat: -33.86, lng: 151.20, wiki: "Meat_pie_(Australia_and_New_Zealand)", impact: "İçerisinde kıyma ve sos bulunan, elde yenilen küçük porsiyonlu Avustralya usulü etli turta." },
+    { name: "Romazava", lat: -18.87, lng: 47.50, wiki: "Romazava", impact: "Etin yeşil yapraklı sebzeler (anamamy) ve zencefil ile pişirildiği, Madagaskar mutfağının en sevilen sulu yemeği." },
+
+    // AMERİKALAR
+    { name: "Mole Sosu", lat: 17.06, lng: -96.72, wiki: "Mole_sauce", impact: "Biberler, baharatlar ve az miktarda çikolata içeren kompleks yapılı geleneksel Meksika sosu." },
+    { name: "Ceviche", lat: -12.04, lng: -77.04, wiki: "Ceviche", impact: "Taze balığın limon suyu ve baharatlarla marine edilerek soğuk servis edildiği Peru yemeği." },
+    { name: "Pão de Queijo", lat: -19.91, lng: -43.93, wiki: "Pão_de_queijo", impact: "Tapyoka unu ve peynir ile hazırlanan Brezilya usulü peynirli küçük ekmekler." },
+    { name: "Poutine", lat: 45.50, lng: -73.56, wiki: "Poutine", impact: "Patates kızartmasının üzerine taze peynir parçaları ve sıcak et suyunun döküldüğü yemek." },
+    { name: "Kahve", lat: 7.00, lng: 36.00, wiki: "Coffea arabica", cat: "cat-teknik", impact: "Etiyopya kökenli, geleneksel yöntemlerle kavrulup demlenen Arabica cinsi kahve kültürü." },
+    { name: "New York Usulü Pizza", lat: 40.71, lng: -74.00, wiki: "New_York-style_pizza", impact: "Geniş ve ince dilimler halinde sunulan, elle katlanarak yenen New York usulü pizza." },
+    { name: "Empanada", lat: -33.44, lng: -70.66, wiki: "Empanada", impact: "İçerisi et, soğan ve baharatla doldurularak fırınlanan veya kızartılan Güney Amerika usulü börek." },
+    { name: "Jerk Chicken", lat: 18.01, lng: -76.79, wiki: "Jerk_chicken", impact: "Karayip mutfağına özgü, çok acı baharat karışımıyla marine edilip odun ateşinde pişirilen tavuk." },
+    { name: "Cevapi", lat: 43.85, lng: 18.41, wiki: "Ćevapi", impact: "Sığır ve kuzu etinden hazırlanan, somun ekmek ve soğanla servis edilen Balkan köftesi." },
+    { name: "Asado", lat: -34.60, lng: -58.38, wiki: "Asado", impact: "Büyük parça etlerin açık ateşte yavaş yavaş pişirildiği Arjantin barbekü geleneği." },
+    { name: "Bandeja Paisa", lat: 4.71, lng: -74.07, wiki: "Bandeja_paisa", impact: "Fasulye, pilav, kıyma, chorizo, chicharrón ve avokadodan oluşan, enerji deposu devasa Kolombiya tabağı." },
+    { name: "Salteñas", lat: -16.50, lng: -68.11, wiki: "Salteñas", impact: "İçerisinde tatlı-acı bir sos ve et bulunan, fırınlandığında içi çorba gibi sıvı kalan Bolivya usulü empanada." },
+    { name: "Encebollado", lat: -0.18, lng: -78.46, wiki: "Encebollado", impact: "Taze balıK, manyok ve bol soğanla hazırlanan balık çorbası." },
+
+    // RUSYA VE SLAV
+    { name: "Borş Çorbası", lat: 55.75, lng: 37.61, wiki: "Borscht", impact: "Kırmızı pancar sayesinde kendine has rengini alan, ekşi krema (smetana) ile servis edilen Slav mutfağı klasiği." },
+    { name: "Chicken Kyiv", lat: 50.45, lng: 30.52, wiki: "Chicken_Kyiv", impact: "Dövülmüş tavuk göğsünün içine soğuk tereyağı sarılıp panelenerek kızartıldığı, kesildiğinde yağı akan teknik yemek." },
+    { name: "Draniki", lat: 53.90, lng: 27.56, wiki: "Draniki", impact: "Belarus mutfağının temeli olan, ince rendelenmiş patateslerin az yağda kızartılmasıyla yapılan patates mücveri." },
+
+    // KUZEY AFRİKA
+    { name: "Lablabi", lat: 36.80, lng: 10.18, wiki: "Lablabi", impact: "Bayat ekmeklerin üzerine dökülen nohut suyu, kimyon, harissa ve zeytinyağı ile yapılan zengin aromalı Tunus yemeği." },
+    { name: "Chakhchoukha", lat: 36.75, lng: 3.05, wiki: "Chakhchoukha", impact: "Elle koparılan ince hamur parçalarının (rougag), baharatlı kuzu eti ve sebze sosuyla birleştiği şenlik yemeği." },
+    { name: "Bazeen", lat: 32.88, lng: 13.19, wiki: "Bazeen", impact: "Arpa ununun suda kaynatılıp yoğurulmasıyla elde edilen sert hamur kubbesinin etrafına soslu et dizilerek yenen geleneksel yemek." },
+    { name: "Tajin", lat: 31.62, lng: -7.98, wiki: "Tajine", impact: "Koni biçimli toprak kaplarda yavaş pişen, et ve kuru meyve içeren Kuzey Afrika yemeği." },
+
+    // DİĞER AFRİKA
+    { name: "Ugali", lat: -1.29, lng: 36.82, wiki: "Ugali", impact: "Mısır ununun suyla kaynatılarak yoğun bir hamur kıvamına getirilmesiyle yapılan, Doğu Afrika'nın temel karbonhidrat kaynağı." },
+    { name: "Chips Mayai", lat: -6.79, lng: 39.20, wiki: "Chipsi mayai", impact: "Patates kızartmasının yumurta ile birleşerek omlete dönüştüğü, Tanzanya sokak kültürünün en sevilen hızlı yemeği." },
+    { name: "Moambe Chicken", lat: -4.44, lng: 15.26, wiki: "Moambe_chicken", impact: "Tavuk etinin palmiye yağı meyvesinden elde edilen yoğun 'moambe' sosuyla pişirildiği, Orta Afrika'nın en meşhur yahnisi." },
+    { name: "Jollof Rice", lat: 14.71, lng: -17.44, wiki: "Jollof_rice", impact: "Domates, biber ve soğan bazlı bir sosun içinde pişen, Batı Afrika ülkeleri arasında 'en iyisi' tartışmaları yaratan baharatlı pilav." },
+    { name: "Ful Medames", lat: 15.50, lng: 32.55, wiki: "Ful_medames", impact: "Baklanın sarımsak ve limonla ezilerek hazırlandığı, Sudan ve Mısır mutfağının vazgeçilmez kahvaltılık temel gıdası." },
+    { name: "Tigadegena", lat: 12.63, lng: -8.00, wiki: "Peanut stew", impact: "Yer fıstığı ezmesi bazlı bir sosun içinde sebze ve etın pişirildiği, Sahra altı Afrika'nın karakteristik fıstıklı yahnisi." },
+    { name: "Nshima", lat: -15.38, lng: 28.32, wiki: "Nshima", impact: "İnce öğütülmüş mısır unundan yapılan ve elle top haline getirilerek sebze veya et suyuna banılarak yenen geleneksel besin." },
+    { name: "Seswaa", lat: -24.62, lng: 25.92, wiki: "Seswaa", impact: "Sığır veya keçi etinin sadece tuz ve suyla, lif lif ayrılana kadar saatlerce dövülerek pişirildiği törensel yemek." },
+
+   
+
+      
+    ];
+
+    const map = L.map('map', { zoomControl: false }).setView([40.0, 18.0], 4);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}').addTo(map);
+
+    // Zoom kontrolünü sağ üste alalım (Mobilde panel kapatmasın)
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    const markers = {};
+    const select = document.getElementById('newsSelect');
+    let lastMarker = null;
+
+    dataSet.forEach(item => {
+        const icon = L.divIcon({ className: 'food-marker', iconSize: [14, 14] });
+        const m = L.marker([item.lat, item.lng], { icon: icon }).addTo(map);
+        markers[item.name] = m;
+        
+        const opt = document.createElement('option');
+        opt.value = item.name; opt.textContent = item.name;
+        select.appendChild(opt);
+        
+        m.on('click', () => handleSelection(item));
+    });
+
+    function handleSelection(item) {
+        // Mobilde odaklanırken harita alanını ortalamak için offset gerekebilir ama flyTo yeterlidir
+        map.flyTo([item.lat, item.lng], 7, { animate: true, duration: 1.5 });
+        
+        if (lastMarker) {
+            lastMarker.getElement().style.backgroundColor = 'var(--bright-orange)';
+            lastMarker.getElement().style.transform = 'scale(1)';
+        }
+        const currentMarker = markers[item.name];
+        currentMarker.getElement().style.backgroundColor = 'var(--deep-red)';
+        currentMarker.getElement().style.transform = 'scale(2)';
+        lastMarker = currentMarker;
+        loadWikiData(item);
+
+        // Mobilde seçim yapıldığında içeriğe odaklanmak için paneli kaydıralım
+        if(window.innerWidth <= 768) {
+            document.getElementById('info-panel').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    async function translateToTR(text) {
+        try {
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=tr&dt=t&q=${encodeURIComponent(text)}`);
+            const json = await res.json();
+            return json[0].map(x => x[0]).join('');
+        } catch (e) { return text; }
+    }
+
+    async function loadWikiData(item) {
+        const loader = document.getElementById('loader');
+        const wikiText = document.getElementById('wiki-text');
+        const wikiImg = document.getElementById('wiki-img');
+        const wikiLink = document.getElementById('wiki-link');
+
+        loader.style.display = 'block';
+        wikiText.textContent = "Veriler getiriliyor...";
+        document.getElementById('wiki-title').textContent = item.name;
+        document.getElementById('impact-container').innerHTML = `<div class="impact-box">${item.impact}</div>`;
+        wikiImg.style.display = 'none';
+
+        try {
+            let response = await fetch(`https://tr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(item.wiki)}`);
+            let data = await response.json();
+
+            if (response.ok && data.type !== 'not_found' && data.extract.length > 100) {
+                displayData(data, false);
+            } else {
+                response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(item.wiki)}`);
+                data = await response.json();
+                if (response.ok && data.type !== 'not_found') {
+                    displayData(data, true);
+                } else {
+                    wikiText.textContent = "Bu konu hakkında detaylı bir kayıt bulunamadı.";
+                }
+            }
+        } catch (e) {
+            wikiText.textContent = "Bağlantı hatası oluştu.";
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    async function displayData(data, shouldTranslate) {
+        const wikiText = document.getElementById('wiki-text');
+        const wikiImg = document.getElementById('wiki-img');
+        const wikiLink = document.getElementById('wiki-link');
+
+        if (shouldTranslate) {
+            wikiText.textContent = "İngilizce kaynaktan Türkçeye çevriliyor...";
+            wikiText.textContent = await translateToTR(data.extract);
+        } else {
+            wikiText.textContent = data.extract;
+        }
+
+        if (data.thumbnail) {
+            wikiImg.src = data.thumbnail.source;
+            wikiImg.style.display = 'block';
+        }
+        wikiLink.href = data.content_urls.desktop.page;
+        wikiLink.style.display = 'block';
+        wikiLink.textContent = shouldTranslate ? "İNGİLİZCE KAYNAĞI GÖR" : "KAYNAĞA GİT";
+    }
+
+    select.onchange = (e) => {
+        const item = dataSet.find(d => d.name === e.target.value);
+        if (item) handleSelection(item);
+    };
+</script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
